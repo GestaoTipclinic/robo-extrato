@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Inserir extrato — TipClinic</title>
+<script src="vendor/xlsx.full.min.js"></script>
+<script src="vendor/pdf.min.js"></script>
+<script src="parser.js"></script>
+<style>
+  :root { --navy:#00427A; --ink:#1F2937; --muted:#5B6676; --line:#D9DEE5; --panel:#F7F9FC; --green:#2E9E5B; --red:#C0392B; --amber:#B45309; --amber-bg:#FFF4D6; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Segoe UI", Arial, sans-serif; color:var(--ink); background:#F3F5F8; font-size:14px; }
+  header { background:var(--navy); color:#fff; }
+  header .in { max-width:880px; margin:0 auto; padding:20px 20px 18px; }
+  header h1 { margin:0; font-size:22px; } header p { margin:4px 0 0; opacity:.85; font-size:13.5px; }
+  main { max-width:880px; margin:0 auto; padding:18px 20px 120px; }
+  .card { background:#fff; border:1px solid var(--line); border-radius:10px; margin-bottom:14px; overflow:hidden; }
+  .card h2 { margin:0; font-size:13px; letter-spacing:.4px; text-transform:uppercase; color:var(--navy); background:var(--panel); padding:10px 14px; border-bottom:1px solid var(--line); display:flex; gap:8px; align-items:center; }
+  .n { background:var(--navy); color:#fff; border-radius:50%; width:20px; height:20px; display:inline-flex; align-items:center; justify-content:center; font-size:12px; }
+  .body { padding:14px; }
+  .drop { display:block; border:2px dashed #AFC2D8; border-radius:10px; padding:28px 12px; text-align:center; color:var(--muted); cursor:pointer; background:#FBFCFE; }
+  .drop.over { border-color:var(--navy); background:#EEF4FB; }
+  .drop b { color:var(--navy); font-size:16px; } .drop small { display:block; margin-top:6px; }
+  .info { margin-top:10px; } .warn { color:var(--amber); background:var(--amber-bg); border-radius:6px; padding:8px 10px; margin-top:10px; font-size:13px; }
+  .err { color:var(--red); background:#FDECEA; border-radius:6px; padding:8px 10px; margin-top:10px; }
+  select { font:inherit; padding:7px 8px; border:1px solid var(--line); border-radius:6px; background:#fff; max-width:100%; }
+  details summary { cursor:pointer; color:var(--navy); margin-top:10px; font-size:13px; }
+  .grid2 { display:grid; grid-template-columns: 110px 1fr; gap:6px 10px; align-items:center; margin-top:8px; font-size:13px; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th { text-align:left; font-size:11px; text-transform:uppercase; color:var(--muted); padding:6px 8px; border-bottom:1px solid var(--line); background:#FAFBFC; position:sticky; top:0; }
+  td { padding:6px 8px; border-bottom:1px solid #EEF1F5; vertical-align:top; }
+  td.v { text-align:right; font-weight:700; white-space:nowrap; } .neg { color:var(--red); } .pos { color:var(--green); }
+  tr.off td { opacity:.4; }
+  .tbl { max-height:52vh; overflow:auto; border:1px solid var(--line); border-radius:8px; }
+  .sign { border:1px solid var(--line); background:#fff; border-radius:4px; font-size:11px; padding:1px 6px; cursor:pointer; color:var(--muted); margin-left:6px; }
+  .bar { position:fixed; left:0; right:0; bottom:0; background:#fff; border-top:1px solid var(--line); }
+  .bar .in { max-width:880px; margin:0 auto; padding:12px 20px; display:flex; gap:12px; align-items:center; }
+  .btn { border:0; border-radius:8px; padding:13px 18px; font-size:15px; font-weight:700; cursor:pointer; background:var(--green); color:#fff; }
+  .btn:disabled { background:#A9CDB8; cursor:default; }
+  .muted { color:var(--muted); font-size:13px; }
+  .ok { background:#E7F4EA; border:1px solid #BFE3C9; color:#1E6B34; border-radius:10px; padding:16px; }
+  .ok h3 { margin:0 0 8px; } .ok ol { margin:6px 0 0; padding-left:20px; line-height:1.8; }
+  kbd { background:#fff; border:1px solid #BFC7D2; border-bottom-width:2px; border-radius:4px; padding:1px 6px; font-family:inherit; font-size:12px; }
+  .hidden { display:none !important; }
+</style>
+</head>
+<body>
+<header><div class="in"><h1>Inserir extrato</h1><p>Envie o arquivo do banco. O robô arruma os lançamentos para você colar na planilha.</p></div></header>
+<main>
+  <section class="card">
+    <h2><span class="n">1</span> Arquivo do extrato</h2>
+    <div class="body">
+      <label class="drop" id="drop"><input type="file" id="file" accept=".pdf,.csv,.txt,.xlsx,.xls,.ofx" class="hidden">
+        <b>Clique para escolher o arquivo</b> ou arraste aqui<small>PDF, Excel (.xlsx/.xls), CSV ou OFX — de qualquer banco</small></label>
+      <div id="info" class="info hidden"></div><div id="msgs"></div>
+      <details id="mapbox" class="hidden"><summary>As colunas vieram trocadas? Ajustar aqui</summary><div class="grid2" id="mapgrid"></div></details>
+    </div>
+  </section>
+  <section class="card hidden" id="c2">
+    <h2><span class="n">2</span> Mês</h2>
+    <div class="body"><select id="month" style="width:100%"></select></div>
+  </section>
+  <section class="card hidden" id="c3">
+    <h2><span class="n">3</span> Confira</h2>
+    <div class="body">
+      <p class="muted" style="margin-top:0">Desmarque o que não deve entrar. Use ± se uma entrada veio como saída (ou o contrário). A categoria e a divisão entre médicos são feitas na planilha.</p>
+      <div class="tbl"><table><thead><tr><th style="width:28px"></th><th style="width:96px">Data</th><th>Descrição</th><th style="text-align:right">Valor</th></tr></thead><tbody id="rows"></tbody></table></div>
+      <p class="muted" id="totals"></p>
+    </div>
+  </section>
+  <section class="hidden" id="done">
+    <div class="ok">
+      <h3 id="doneTitle">✅ Lançamentos copiados</h3>
+      <ol>
+        <li>Volte para a planilha, na aba <b>IMPORTAR EXTRATO</b>.</li>
+        <li>Clique em <b>② IR P/ LINHA VAZIA</b>.</li>
+        <li>Aperte <kbd>Ctrl</kbd> + <kbd>V</kbd> (no Mac, <kbd>⌘</kbd> + <kbd>V</kbd>).</li>
+      </ol>
+      <p style="margin:10px 0 0">A planilha classifica, aprende e distribui nos meses sozinha. Linhas marcadas com ⚠ pedem a sua atenção.</p>
+    </div>
+  </section>
+</main>
+<div class="bar hidden" id="bar"><div class="in">
+  <button class="btn" id="copy" disabled>Copiar lançamentos</button>
+  <span class="muted" id="barinfo"></span>
+</div></div>
+<textarea id="clip" style="position:fixed;left:-9999px;top:0" aria-hidden="true"></textarea>
+<script src="inserir.js"></script>
+</body>
+</html>
