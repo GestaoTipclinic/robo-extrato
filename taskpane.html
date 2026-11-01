@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Robô de Extrato</title>
+<script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+<script src="vendor/xlsx.full.min.js"></script>
+<script src="vendor/pdf.min.js"></script>
+<script src="parser.js"></script>
+<style>
+  :root { --navy:#00427A; --navy-d:#0B2E4F; --ink:#1F2937; --muted:#5B6676; --line:#D9DEE5; --panel:#F7F9FC;
+          --green:#2E9E5B; --red:#C0392B; --amber:#B45309; --amber-bg:#FFF4D6; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: "Segoe UI", Arial, sans-serif; color:var(--ink); font-size:13px; background:#fff; }
+  header { background:var(--navy); color:#fff; padding:14px 16px 12px; }
+  header h1 { margin:0; font-size:17px; letter-spacing:.2px; }
+  header p { margin:3px 0 0; font-size:11.5px; opacity:.85; }
+  main { padding:12px 14px 90px; }
+  .status { font-size:11.5px; padding:7px 10px; border-radius:6px; background:var(--panel); color:var(--muted); margin-bottom:10px; border:1px solid var(--line); }
+  .status.ok { color:#1E6B34; background:#E7F4EA; border-color:#BFE3C9; }
+  .status.err { color:var(--red); background:#FDECEA; border-color:#F3B8B2; }
+  .card { border:1px solid var(--line); border-radius:8px; margin-bottom:12px; overflow:hidden; }
+  .card h2 { margin:0; font-size:12px; text-transform:uppercase; letter-spacing:.5px; color:var(--navy); background:var(--panel);
+             padding:8px 12px; border-bottom:1px solid var(--line); display:flex; gap:8px; align-items:center; }
+  .card h2 .n { background:var(--navy); color:#fff; border-radius:50%; width:18px; height:18px; display:inline-flex; align-items:center; justify-content:center; font-size:11px; }
+  .card .body { padding:10px 12px; }
+  .drop { display:block; border:2px dashed #AFC2D8; border-radius:8px; padding:18px 10px; text-align:center; color:var(--muted); cursor:pointer; background:#FBFCFE; }
+  .drop.over { border-color:var(--navy); background:#EEF4FB; }
+  .drop b { color:var(--navy); }
+  .drop small { display:block; margin-top:4px; font-size:11px; }
+  .fileinfo { margin-top:8px; font-size:12px; }
+  .warn { color:var(--amber); background:var(--amber-bg); border-radius:6px; padding:6px 8px; font-size:11.5px; margin-top:8px; }
+  .err { color:var(--red); background:#FDECEA; border-radius:6px; padding:6px 8px; font-size:12px; margin-top:8px; }
+  select, button, input[type=text] { font-family:inherit; font-size:12.5px; }
+  select { padding:5px 6px; border:1px solid var(--line); border-radius:5px; background:#fff; max-width:100%; }
+  .row2 { display:grid; grid-template-columns: 92px 1fr; gap:6px 8px; align-items:center; margin-top:6px; }
+  .row2 label { font-size:11.5px; color:var(--muted); }
+  details summary { cursor:pointer; color:var(--navy); font-size:12px; margin-top:8px; }
+  .btn { border:0; border-radius:6px; padding:9px 12px; font-weight:600; cursor:pointer; }
+  .btn.primary { background:var(--navy); color:#fff; width:100%; font-size:13.5px; }
+  .btn.primary:disabled { background:#9FB3C8; cursor:default; }
+  .btn.ghost { background:#fff; border:1px solid var(--line); color:var(--navy); }
+  .tabs { display:flex; gap:4px; margin-bottom:8px; flex-wrap:wrap; }
+  .tabs button { border:1px solid var(--line); background:#fff; border-radius:14px; padding:3px 10px; font-size:11.5px; cursor:pointer; color:var(--muted); }
+  .tabs button.on { background:var(--navy); color:#fff; border-color:var(--navy); }
+  .summary { display:grid; grid-template-columns: repeat(3,1fr); gap:6px; margin-bottom:8px; }
+  .summary div { background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:6px; text-align:center; }
+  .summary b { display:block; font-size:15px; }
+  .summary span { font-size:10.5px; color:var(--muted); text-transform:uppercase; }
+  .list { max-height: 46vh; overflow:auto; border:1px solid var(--line); border-radius:6px; }
+  .item { padding:7px 8px; border-bottom:1px solid #EEF1F5; display:grid; grid-template-columns: 18px 1fr auto; gap:4px 6px; align-items:start; }
+  .item:last-child { border-bottom:0; }
+  .item.dup { opacity:.5; }
+  .item .d { font-size:11px; color:var(--muted); }
+  .item .t { font-size:12.3px; word-break:break-word; font-weight:600; }
+  .item .o { font-size:11px; color:var(--muted); word-break:break-word; }
+  .item .v { font-weight:700; font-size:12.5px; white-space:nowrap; text-align:right; }
+  .item .v.neg { color:var(--red); } .item .v.pos { color:var(--green); }
+  .item .cat { grid-column: 2 / 4; display:flex; gap:6px; align-items:center; }
+  .item .cat select { flex:1; min-width:0; }
+  .chip { font-size:10px; font-weight:700; padding:2px 6px; border-radius:10px; white-space:nowrap; }
+  .chip.REGRA { background:#E7F4EA; color:#1E6B34; } .chip.APRENDIDO { background:#E6EEF8; color:var(--navy); }
+  .chip.CLASSIFICAR { background:var(--amber-bg); color:var(--amber); } .chip.MANUAL { background:#EFE9FB; color:#5B3FB5; }
+  .chip.DUP { background:#EEF1F5; color:var(--muted); }
+  .sign { border:1px solid var(--line); background:#fff; border-radius:4px; font-size:11px; padding:1px 5px; cursor:pointer; color:var(--muted); }
+  footer { position:fixed; left:0; right:0; bottom:0; background:#fff; border-top:1px solid var(--line); padding:10px 14px; }
+  .done { text-align:center; padding:14px 6px; }
+  .done .big { font-size:30px; }
+  .done h3 { margin:6px 0; color:var(--navy); }
+  .muted { color:var(--muted); font-size:11.5px; }
+  .split { grid-column: 2 / 4; display:flex; gap:6px; align-items:center; flex-wrap:wrap; margin-top:2px; }
+  .split label { font-size:10.5px; color:var(--muted); display:flex; align-items:center; gap:3px; }
+  .split input { width:48px; padding:3px 4px; border:1px solid var(--line); border-radius:4px; font-size:12px; text-align:right; }
+  .split .sum { font-size:10.5px; font-weight:700; color:#1E6B34; } .split .sum.bad { color:var(--red); }
+  .splitbar { display:flex; gap:6px; align-items:center; flex-wrap:wrap; margin-bottom:8px; padding:6px; background:#F5F8FC; border:1px solid var(--line); border-radius:6px; }
+  .splitbar select { flex:1; min-width:150px; }
+  .hidden { display:none !important; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Robô de Extrato</h1>
+  <p>Envie o extrato, escolha o mês e o robô faz os lançamentos.</p>
+</header>
+<main>
+  <div id="status" class="status">Conectando à planilha…</div>
+
+  <section class="card" id="step1">
+    <h2><span class="n">1</span> Extrato</h2>
+    <div class="body">
+      <label class="drop" id="drop">
+        <input type="file" id="file" accept=".pdf,.csv,.txt,.xlsx,.xls,.ofx" class="hidden">
+        <b>Clique para escolher o arquivo</b> ou arraste aqui
+        <small>PDF, Excel (.xlsx/.xls), CSV ou OFX — de qualquer banco</small>
+      </label>
+      <div id="fileinfo" class="fileinfo hidden"></div>
+      <div id="filewarn"></div>
+      <details id="mapbox" class="hidden">
+        <summary>Ajustar colunas do arquivo</summary>
+        <div class="row2" id="mapgrid"></div>
+        <div style="margin-top:8px"><button class="btn ghost" id="applymap">Aplicar e lembrar para este banco</button></div>
+      </details>
+    </div>
+  </section>
+
+  <section class="card hidden" id="step2">
+    <h2><span class="n">2</span> Mês do lançamento</h2>
+    <div class="body">
+      <select id="month" style="width:100%"></select>
+      <div id="yearwarn"></div>
+    </div>
+  </section>
+
+  <section class="card hidden" id="step3">
+    <h2><span class="n">3</span> Confira os lançamentos</h2>
+    <div class="body">
+      <div class="summary">
+        <div><b id="sNew">0</b><span>novos</span></div>
+        <div><b id="sTodo">0</b><span>pendentes</span></div>
+        <div><b id="sDup">0</b><span>já lançados</span></div>
+      </div>
+      <div id="splitBar" class="splitbar hidden">
+        <select id="splitMode"></select>
+        <label class="muted"><input type="checkbox" id="splitOnlyEmpty" checked> só os sem divisão</label>
+        <button class="btn ghost" id="splitAll">Aplicar</button>
+      </div>
+      <div class="tabs" id="tabs">
+        <button data-f="all" class="on">Todos</button>
+        <button data-f="todo">A classificar</button>
+        <button data-f="dup">Já lançados</button>
+      </div>
+      <div class="list" id="list"></div>
+      <p class="muted">A categoria que você escolher aqui fica gravada: nos próximos meses o robô reconhece essa descrição sozinho. Com mais de um médico, informe a % de cada um em cada lançamento.</p>
+    </div>
+  </section>
+
+  <section class="card hidden" id="stepDone">
+    <div class="done">
+      <div class="big">✅</div>
+      <h3 id="doneTitle">Lançamentos feitos</h3>
+      <p class="muted" id="doneText"></p>
+      <button class="btn ghost" id="goMonth" style="margin:6px 4px">Abrir a aba do mês</button>
+      <button class="btn ghost" id="again" style="margin:6px 4px">Enviar outro extrato</button>
+    </div>
+  </section>
+</main>
+<footer id="footer" class="hidden">
+  <button class="btn primary" id="launch" disabled>Lançar</button>
+</footer>
+<script src="taskpane.js"></script>
+</body>
+</html>

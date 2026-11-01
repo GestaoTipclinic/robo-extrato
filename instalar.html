@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Instalar o Robô de Extrato — TipClinic</title>
+<style>
+  body { margin:0; font-family:"Segoe UI", Arial, sans-serif; color:#1F2937; background:#F5F7FA; }
+  .wrap { max-width:760px; margin:0 auto; padding:28px 20px 60px; }
+  header { background:#00427A; color:#fff; padding:26px 20px; }
+  header .wrap { padding:0 20px; }
+  h1 { margin:0; font-size:24px; } header p { margin:6px 0 0; opacity:.85; }
+  .card { background:#fff; border:1px solid #D9DEE5; border-radius:10px; padding:18px 20px; margin-top:18px; }
+  h2 { margin:0 0 10px; font-size:17px; color:#00427A; }
+  ol { margin:0; padding-left:20px; line-height:1.7; }
+  .btn { display:inline-block; background:#2E9E5B; color:#fff; border:0; border-radius:8px; padding:12px 18px; font-size:15px; font-weight:600; cursor:pointer; text-decoration:none; }
+  code { background:#EEF1F5; padding:1px 5px; border-radius:4px; }
+  .muted { color:#5B6676; font-size:13px; }
+  .tip { background:#FFF4D6; color:#7A5A00; border-radius:8px; padding:10px 12px; font-size:13.5px; margin-top:12px; }
+</style>
+</head>
+<body>
+<header><div class="wrap"><h1>Robô de Extrato</h1><p>Instale uma vez e lance extratos na planilha de conciliação com um clique.</p></div></header>
+<div class="wrap">
+  <div class="card">
+    <h2>1. Baixe o arquivo de instalação</h2>
+    <p><button class="btn" id="dl">Baixar manifest.xml</button></p>
+    <p class="muted">É um arquivo pequeno que diz ao Excel onde o robô está. Guarde-o: ele é usado no passo 2.</p>
+  </div>
+  <div class="card">
+    <h2>2. Instale no Excel (uma vez por navegador)</h2>
+    <p><b>Excel no navegador (OneDrive):</b></p>
+    <ol>
+      <li>Abra a planilha de conciliação no OneDrive.</li>
+      <li>Na guia <b>Página Inicial</b>, clique em <b>Suplementos</b> e depois em <b>Mais suplementos</b> (em algumas versões: <b>Inserir ▸ Suplementos do Office</b>).</li>
+      <li>Vá em <b>Meus suplementos</b> ▸ <b>Gerenciar meus suplementos</b> ▸ <b>Carregar meu suplemento</b>.</li>
+      <li>Escolha o <code>manifest.xml</code> baixado e clique em <b>Carregar</b>.</li>
+      <li>Pronto: aparece o botão <b>Robô de Extrato</b> na guia Página Inicial.</li>
+    </ol>
+    <p style="margin-top:14px"><b>Excel instalado no Windows:</b> Página Inicial ▸ Suplementos ▸ Mais suplementos ▸ Meus suplementos ▸ Carregar meu suplemento (mesmo arquivo).</p>
+    <div class="tip">Se limpar os dados do navegador ou usar outro computador, repita o passo 2 (leva 30 segundos).</div>
+  </div>
+  <div class="card">
+    <h2>3. Use</h2>
+    <ol>
+      <li>Clique em <b>Robô de Extrato</b>.</li>
+      <li>Escolha o arquivo do extrato (PDF, Excel, CSV ou OFX, de qualquer banco).</li>
+      <li>Confira o mês e as categorias sugeridas. Onde estiver “classificar”, escolha a categoria: o robô aprende para os próximos meses.</li>
+      <li>Clique em <b>Lançar</b>. Os lançamentos aparecem na aba do mês.</li>
+    </ol>
+    <p class="muted">O extrato é lido no seu próprio computador e não é enviado para nenhum servidor.</p>
+  </div>
+</div>
+<script>
+  const base = location.href.replace(/[#?].*$/, '').replace(/\/[^\/]*$/, '');
+  document.getElementById('dl').addEventListener('click', async () => {
+    const t = await (await fetch('manifest.template.xml', { cache: 'no-store' })).text();
+    const xml = t.split('{{BASE}}').join(base).split('{{ORIGIN}}').join(location.origin);
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([xml], { type: 'text/xml' }));
+    a.download = 'manifest.xml'; document.body.appendChild(a); a.click(); a.remove();
+  });
+</script>
+</body>
+</html>

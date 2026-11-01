@@ -1,0 +1,43 @@
+ROBÔ DE EXTRATO — COMO PUBLICAR (feito uma única vez pela TipClinic)
+=====================================================================
+
+O robô é um suplemento do Excel. Os arquivos desta pasta precisam ficar num
+endereço https na internet. O jeito gratuito e mais simples é o GitHub Pages:
+
+1. Crie uma conta gratuita em https://github.com (se ainda não tiver).
+2. Clique em "New repository", dê o nome  robo-extrato , marque "Public" e crie.
+3. Na página do repositório, clique em "uploading an existing file" e arraste
+   TODO o conteúdo desta pasta (as pastas assets e vendor também). Clique em
+   "Commit changes".
+4. Vá em Settings > Pages. Em "Source" escolha "Deploy from a branch",
+   branch "main", pasta "/ (root)" e clique em Save.
+5. Em 1 ou 2 minutos o robô estará em:
+      https://SEU-USUARIO.github.io/robo-extrato/
+   Abra esse endereço: ele mostra a página de instalação.
+
+PARA CADA PESSOA QUE VAI USAR (você e os clientes)
+--------------------------------------------------
+Envie o link  https://SEU-USUARIO.github.io/robo-extrato/instalar.html
+A página tem o botão "Baixar manifest.xml" e o passo a passo:
+Excel > Página Inicial > Suplementos > Mais suplementos > Meus suplementos >
+Carregar meu suplemento > escolher o manifest.xml.
+Aparece o botão "Robô de Extrato" na guia Página Inicial.
+(No Excel pelo navegador, se a pessoa limpar os dados do navegador ou trocar de
+computador, precisa repetir esse passo.)
+
+PRIVACIDADE
+-----------
+Os arquivos publicados são só o programa do robô (não têm dados de ninguém).
+O extrato é lido no computador de quem está usando e vai direto para a
+planilha; ele não é enviado para nenhum servidor.
+
+ATUALIZAÇÕES
+------------
+Para atualizar o robô, substitua os arquivos no repositório. Quem já instalou
+não precisa reinstalar (exceto se o arquivo manifest.template.xml mudar).
+
+REQUISITO DA PLANILHA
+---------------------
+O robô trabalha com a planilha que tem as abas IMPORTAR EXTRATO INF e
+REGRAS EXTRATO INF (versão "NOVO LAYOUT"). Ele grava na aba IMPORTAR EXTRATO,
+e a planilha distribui os lançamentos nos meses.
