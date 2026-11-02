@@ -141,14 +141,11 @@
     render();
   });
 
-  // aba mensal: colunas C..J (DATA, DESCRIÇÃO, DESPESA, VALOR DESPESA, VALOR RECEITA, RECEITA, SERVIÇO, OBSERVAÇÃO=texto do extrato)
-  // DESCRIÇÃO/DESPESA/RECEITA/SERVIÇO entram como fórmula que busca o que já foi definido antes para o mesmo texto do extrato
+  // aba mensal: área "COLE O EXTRATO AQUI" (colunas Q, R, S): DATA, DESCRIÇÃO DO EXTRATO, VALOR
   function buildMonthTSV() {
-    const f = col => EN() ? `=INDIRECT("${col}"&ROW())` : `=INDIRETO("${col}"&LIN())`;
     const clean = s => String(s).replace(/[\t\r\n]+/g, ' ').trim().replace(/^[=+\-@]/, "'$&");
     const num = v => v.toFixed(2).replace('.', EN() ? '.' : ',');
-    return S.rows.filter(r => r.on).map(r => [iso(r.date), f('X'), r.value < 0 ? f('Y') : '', r.value < 0 ? num(r.value) : '', r.value > 0 ? num(r.value) : '',
-      r.value > 0 ? f('Z') : '', f('AA'), clean(r.desc)].join('\t')).join('\r\n');
+    return S.rows.filter(r => r.on).map(r => [iso(r.date), clean(r.desc), num(r.value)].join('\t')).join('\r\n');
   }
   // linhas no formato das colunas A..L da aba IMPORTAR EXTRATO (D..K vazias; L = lote)
   function buildTSV() {
@@ -171,7 +168,7 @@
     const n = S.rows.filter(r => r.on).length;
     const cop = store.get('robo_copiados') || {}; cop[S.hash] = new Date().toLocaleString('pt-BR'); store.set('robo_copiados', cop);
     $('doneTitle').textContent = `✅ ${n} lançamento(s) copiados`;
-    if (MES) $('doneSteps').innerHTML = `<li>Volte para a planilha, na aba <b>${P.MESES[+S.month.split('-')[1] - 1] || P.MESES[MES - 1]}</b>.</li><li>Clique em <b>▸ COLAR NA LINHA…</b> (abaixo do botão verde).</li><li>Aperte <kbd>Ctrl</kbd> + <kbd>V</kbd> (no Mac, <kbd>⌘</kbd> + <kbd>V</kbd>).</li>`;
+    if (MES) $('doneSteps').innerHTML = `<li>Volte para a planilha, na aba <b>${P.MESES[+S.month.split('-')[1] - 1] || P.MESES[MES - 1]}</b>.</li><li>Clique em <b>▸ COLAR NA LINHA…</b> (abaixo do botão verde): ele leva até a área amarela “COLE O EXTRATO AQUI”.</li><li>Aperte <kbd>Ctrl</kbd> + <kbd>V</kbd> (no Mac, <kbd>⌘</kbd> + <kbd>V</kbd>).</li>`;
     $('done').classList.remove('hidden'); $('done').scrollIntoView({ behavior: 'smooth' });
     $('copy').textContent = 'Copiado ✓ — copiar de novo';
   });
