@@ -4,9 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Inserir extrato — TipClinic</title>
-<script src="vendor/xlsx.full.min.js"></script>
-<script src="vendor/pdf.min.js"></script>
-<script src="parser.js"></script>
+<script src="vendor/xlsx.full.min.js?v=20261102b"></script>
+<script src="vendor/pdf.min.js?v=20261102b"></script>
+<script src="parser.js?v=20261102b"></script>
 <style>
   :root { --navy:#00427A; --ink:#1F2937; --muted:#5B6676; --line:#D9DEE5; --panel:#F7F9FC; --green:#2E9E5B; --red:#C0392B; --amber:#B45309; --amber-bg:#FFF4D6; }
   * { box-sizing:border-box; }
@@ -46,7 +46,7 @@
 </style>
 </head>
 <body>
-<header><div class="in"><h1>Inserir extrato</h1><p>Envie o arquivo do banco. O robô arruma os lançamentos para você colar na planilha.</p></div></header>
+<header><div class="in"><h1>Inserir extrato <span id="ver" style="font-size:11px;font-weight:400;opacity:.7">versão 02/11 18h10</span></h1><p>Envie o arquivo do banco. O robô arruma os lançamentos para você colar na planilha.</p></div></header>
 <main>
   <section class="card">
     <h2><span class="n">1</span> Arquivo do extrato</h2>
@@ -87,6 +87,6 @@
   <label class="muted" style="margin-left:auto;white-space:nowrap"><input type="checkbox" id="en"> Excel em inglês</label>
 </div></div>
 <textarea id="clip" style="position:fixed;left:-9999px;top:0" aria-hidden="true"></textarea>
-<script src="inserir.js"></script>
+<script src="inserir.js?v=20261102b"></script>
 </body>
 </html>
