@@ -72,18 +72,19 @@
   <section class="hidden" id="done">
     <div class="ok">
       <h3 id="doneTitle">✅ Lançamentos copiados</h3>
-      <ol>
+      <ol id="doneSteps">
         <li>Volte para a planilha, na aba <b>IMPORTAR EXTRATO</b>.</li>
         <li>Clique em <b>② IR P/ LINHA VAZIA</b>.</li>
         <li>Aperte <kbd>Ctrl</kbd> + <kbd>V</kbd> (no Mac, <kbd>⌘</kbd> + <kbd>V</kbd>).</li>
       </ol>
-      <p style="margin:10px 0 0">A planilha classifica, aprende e distribui nos meses sozinha. Linhas marcadas com ⚠ pedem a sua atenção.</p>
+      <p style="margin:10px 0 0">Depois é só conferir: a descrição e a definição (receita/despesa) vêm preenchidas com o que você já usou antes para o mesmo texto do extrato. O que você corrigir na planilha é lembrado no próximo mês.</p>
     </div>
   </section>
 </main>
 <div class="bar hidden" id="bar"><div class="in">
   <button class="btn" id="copy" disabled>Copiar lançamentos</button>
   <span class="muted" id="barinfo"></span>
+  <label class="muted" style="margin-left:auto;white-space:nowrap"><input type="checkbox" id="en"> Excel em inglês</label>
 </div></div>
 <textarea id="clip" style="position:fixed;left:-9999px;top:0" aria-hidden="true"></textarea>
 <script src="inserir.js"></script>

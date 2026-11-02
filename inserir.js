@@ -13,6 +13,13 @@
                   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* sem armazenamento */ } } };
 
   const S = { file: null, buf: null, parsed: null, rows: [], month: null, hash: null };
+  const qs = new URLSearchParams(location.search);
+  const MES = +qs.get('m') || 0;                      // 1..12 quando aberto pelo botão de uma aba mensal
+  if (MES) {
+    document.querySelector('header p').textContent = 'Lançamentos de ' + P.MESES[MES - 1] + ': envie o arquivo do banco, clique em Copiar e cole na aba do mês.';
+    document.title = 'Inserir extrato — ' + P.MESES[MES - 1];
+  }
+  const EN = () => !!store.get('excel_en');
   const year = new Date().getFullYear();
 
   const drop = $('drop'), input = $('file');
@@ -42,7 +49,7 @@
       $('info').innerHTML = `<b>${esc(file.name)}</b> · ${parsed.kind} · <b>${parsed.rows.length}</b> lançamentos encontrados`;
       parsed.warnings.forEach(w => $('msgs').insertAdjacentHTML('beforeend', `<div class="warn">${esc(w)}</div>`));
       const seen = (store.get('robo_copiados') || {})[S.hash];
-      if (seen) $('msgs').insertAdjacentHTML('beforeend', `<div class="warn">Este mesmo arquivo já foi copiado neste computador em ${esc(seen)}. Se já colou na planilha, não precisa colar de novo (a planilha também avisa “⚠ DUPLICADO”).</div>`);
+      if (seen) $('msgs').insertAdjacentHTML('beforeend', `<div class="warn">Este mesmo arquivo já foi copiado neste computador em ${esc(seen)}. Se já colou na planilha, não cole de novo${MES ? ', senão os lançamentos ficam em dobro' : ' (a planilha também avisa “⚠ DUPLICADO”)'}.</div>`);
       buildMap(parsed);
       if (!parsed.rows.length) {
         $('msgs').insertAdjacentHTML('beforeend', `<div class="err">Não encontrei lançamentos neste arquivo. ${parsed.table ? 'Abra “Ajustar aqui” e indique as colunas de data, descrição e valor.' : 'Tente baixar o extrato do banco em outro formato (Excel, CSV ou OFX).'}</div>`);
@@ -79,7 +86,14 @@
   function buildMonths() {
     const cnt = {};
     S.parsed.rows.forEach(r => { const d = ymd(r.date); const k = d.y + '-' + String(d.m).padStart(2, '0'); cnt[k] = (cnt[k] || 0) + 1; });
-    const keys = Object.keys(cnt).sort(), best = keys.slice().sort((a, b) => cnt[b] - cnt[a])[0];
+    const keys = Object.keys(cnt).sort();
+    let best = keys.slice().sort((a, b) => cnt[b] - cnt[a])[0];
+    if (MES) {
+      const ofMonth = keys.filter(k => +k.split('-')[1] === MES).sort((a, b) => cnt[b] - cnt[a]);
+      if (!ofMonth.length) {
+        $('msgs').insertAdjacentHTML('beforeend', `<div class="warn">Este extrato não tem lançamentos de <b>${P.MESES[MES - 1]}</b>. Escolha abaixo o mês que deseja copiar (ele deve ser colado na aba desse mês).</div>`);
+      } else best = ofMonth[0];
+    }
     $('month').innerHTML = keys.map(k => { const [y, m] = k.split('-').map(Number); return `<option value="${k}" ${k === best ? 'selected' : ''}>${P.MESES[m - 1]} / ${y} — ${cnt[k]} lançamento(s)</option>`; }).join('')
       + (keys.length > 1 ? `<option value="all">Todos os meses do arquivo — ${S.parsed.rows.length} lançamento(s)</option>` : '');
     $('c2').classList.remove('hidden');
@@ -103,7 +117,7 @@
     $('totals').textContent = `${on.length} lançamento(s) · entradas ${money(ent)} · saídas ${money(sai)}`;
     $('copy').disabled = !on.length;
     $('copy').textContent = on.length ? `Copiar ${on.length} lançamento(s)` : 'Nada selecionado';
-    $('barinfo').textContent = 'Depois: na planilha, “② Ir p/ linha vazia” e Ctrl+V';
+    $('barinfo').textContent = MES ? 'Depois: na aba do mês, “▸ COLAR NA LINHA” e Ctrl+V' : 'Depois: na planilha, “② Ir p/ linha vazia” e Ctrl+V';
   }
   $('rows').addEventListener('click', e => {
     const tr = e.target.closest('tr'); if (!tr) return;
@@ -114,8 +128,18 @@
     render();
   });
 
+  // aba mensal: colunas C..J (DATA, DESCRIÇÃO, DESPESA, VALOR DESPESA, VALOR RECEITA, RECEITA, SERVIÇO, OBSERVAÇÃO=texto do extrato)
+  // DESCRIÇÃO/DESPESA/RECEITA/SERVIÇO entram como fórmula que busca o que já foi definido antes para o mesmo texto do extrato
+  function buildMonthTSV() {
+    const f = col => EN() ? `=INDIRECT("${col}"&ROW())` : `=INDIRETO("${col}"&LIN())`;
+    const clean = s => String(s).replace(/[\t\r\n]+/g, ' ').trim().replace(/^[=+\-@]/, "'$&");
+    const num = v => v.toFixed(2).replace('.', EN() ? '.' : ',');
+    return S.rows.filter(r => r.on).map(r => [iso(r.date), f('X'), r.value < 0 ? f('Y') : '', r.value < 0 ? num(r.value) : '', r.value > 0 ? num(r.value) : '',
+      r.value > 0 ? f('Z') : '', f('AA'), clean(r.desc)].join('\t')).join('\r\n');
+  }
   // linhas no formato das colunas A..L da aba IMPORTAR EXTRATO (D..K vazias; L = lote)
   function buildTSV() {
+    if (MES) return buildMonthTSV();
     const now = new Date();
     const lote = 'R' + now.getFullYear() + String(now.getMonth() + 1).padStart(2, '0') + String(now.getDate()).padStart(2, '0')
       + String(now.getHours()).padStart(2, '0') + String(now.getMinutes()).padStart(2, '0') + String(now.getSeconds()).padStart(2, '0');
@@ -123,6 +147,8 @@
     const num = v => v.toFixed(2).replace('.', ',');
     return S.rows.filter(r => r.on).map(r => [iso(r.date), clean(r.desc), num(r.value), '', '', '', '', '', '', '', '', lote].join('\t')).join('\r\n');
   }
+  $('en').checked = EN();
+  $('en').addEventListener('change', e => store.set('excel_en', e.target.checked));
   $('copy').addEventListener('click', async () => {
     const text = buildTSV();
     let ok = false;
@@ -132,6 +158,7 @@
     const n = S.rows.filter(r => r.on).length;
     const cop = store.get('robo_copiados') || {}; cop[S.hash] = new Date().toLocaleString('pt-BR'); store.set('robo_copiados', cop);
     $('doneTitle').textContent = `✅ ${n} lançamento(s) copiados`;
+    if (MES) $('doneSteps').innerHTML = `<li>Volte para a planilha, na aba <b>${P.MESES[+S.month.split('-')[1] - 1] || P.MESES[MES - 1]}</b>.</li><li>Clique em <b>▸ COLAR NA LINHA…</b> (abaixo do botão verde).</li><li>Aperte <kbd>Ctrl</kbd> + <kbd>V</kbd> (no Mac, <kbd>⌘</kbd> + <kbd>V</kbd>).</li>`;
     $('done').classList.remove('hidden'); $('done').scrollIntoView({ behavior: 'smooth' });
     $('copy').textContent = 'Copiado ✓ — copiar de novo';
   });
