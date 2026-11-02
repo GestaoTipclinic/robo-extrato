@@ -39,12 +39,24 @@
     $('info').classList.remove('hidden'); $('info').textContent = 'Lendo ' + file.name + '…';
     try {
       const buf = mapOverride ? S.buf : await file.arrayBuffer();
+      if (!mapOverride) S.password = null;
       S.file = file; S.buf = buf;
       const libs = { XLSX: window.XLSX, pdfjsLib: window.pdfjsLib };
-      let parsed = await P.readStatement(file.name, buf, libs, { year });
+      let parsed;
+      for (let tries = 0; ; tries++) {
+        try { parsed = await P.readStatement(file.name, buf, libs, { year, password: S.password }); break; }
+        catch (e) {
+          if (e && e.name === 'PasswordException' && tries < 3) {
+            const pw = prompt(tries ? 'Senha incorreta. Digite a senha do PDF (muitos bancos usam o CPF ou CNPJ, só números):' : 'Este PDF tem senha. Digite a senha (muitos bancos usam o CPF ou CNPJ, só números):');
+            if (pw === null) throw new Error('PDF protegido por senha: sem a senha não é possível ler.');
+            S.password = pw; continue;
+          }
+          throw e;
+        }
+      }
       const maps = store.get('robo_maps') || {};
       const remembered = mapOverride || (parsed.table && maps[sigOf(parsed.table)]);
-      if (remembered && parsed.table) parsed = await P.readStatement(file.name, buf, libs, { year, mapOverride: remembered });
+      if (remembered && parsed.table) parsed = await P.readStatement(file.name, buf, libs, { year, mapOverride: remembered, password: S.password });
       S.parsed = parsed; S.hash = await hashOf(buf);
       $('info').innerHTML = `<b>${esc(file.name)}</b> · ${parsed.kind} · <b>${parsed.rows.length}</b> lançamentos encontrados`;
       parsed.warnings.forEach(w => $('msgs').insertAdjacentHTML('beforeend', `<div class="warn">${esc(w)}</div>`));
@@ -104,6 +116,7 @@
     S.month = $('month').value;
     let rows = S.parsed.rows;
     if (S.month !== 'all') { const [y, m] = S.month.split('-').map(Number); rows = rows.filter(r => { const d = ymd(r.date); return d.y === y && d.m === m; }); }
+    rows = rows.map((r, k) => ({ r, k })).sort((a, b) => a.r.date - b.r.date || a.k - b.k).map(x => x.r);   // ordem cronológica
     S.rows = rows.map((r, i) => Object.assign({}, r, { id: i, on: true }));
     $('c3').classList.remove('hidden'); $('bar').classList.remove('hidden');
     render();

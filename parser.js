@@ -304,6 +304,10 @@
     const hasSaldoCol = /\bsaldo\b/i.test(all);
     const out = [];
     let curDate = null, last = null;
+    // linhas repetidas (cabeçalho/rodapé de cada página) não são continuação de descrição
+    const freq = {};
+    lines.forEach(l => { const k = norm(cleanText(l)); if (k) freq[k] = (freq[k] || 0) + 1; });
+    const NOISE = /cnpj|cpf|ouvidoria|extrato|agencia|conta:|pag(ina)?\.? ?\d|\d+ de \d+$|sac\b|www\.|http|@|\d{2}\/\d{2}\/\d{4}|^data\b|^descri|^historico|^valor/;
     for (let raw of lines) {
       const line = cleanText(raw);
       if (!line) continue;
@@ -316,10 +320,12 @@
       if (dt !== null && !moneys.length) { curDate = dt; last = null; continue; }   // linha só com data (agrupador)
       if (!moneys.length) {
         // continuação de descrição
-        if (last && line.length < 80 && !/saldo|total|pagina|página/.test(nl)) last.desc = cleanText(last.desc + ' ' + line);
+        if (last && line.length < 60 && freq[nl] < 2 && !NOISE.test(nl) && !/saldo|total/.test(nl)) last.desc = cleanText(last.desc + ' ' + line);
+        else last = null;
         continue;
       }
-      if (/saldo (anterior|do dia|final|inicial|disponivel|em conta|bloqueado)|^saldo\b|^total\b|^resumo|^subtotal/.test(norm(rest))) { last = null; continue; }
+      if (dt !== null) curDate = dt;   // linha de data com saldo do dia (ex.: Cora) também define a data do grupo
+      if (/saldo (anterior|do dia|final|inicial|disponivel|em conta|bloqueado)|^saldo\b|^total\b|total de (entradas|saidas)|^resumo|^subtotal/.test(norm(rest))) { last = null; continue; }
       const useDate = dt !== null ? dt : curDate;
       if (useDate === null) continue;
       if (dt !== null) curDate = dt;
@@ -328,7 +334,10 @@
       let val = parseMoney(pick.txt);
       if (val === null || val === 0) continue;
       // palavras que indicam saída quando o PDF não mostra sinal
-      let desc = cleanText(rest.slice(0, moneys[0].idx));
+      let desc = cleanText(rest.slice(0, moneys[0].idx)
+        .replace(/\b\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}\b/g, '')        // CNPJ
+        .replace(/\b\d{3}\.\d{3}\.\d{3}-\d{2}\b/g, '')               // CPF
+        .replace(/\*{3}\.?\d{3}\.?\d{3}-?\*{2}/g, ''));                // CPF mascarado
       if (!desc) desc = cleanText(rest.replace(pick.txt, ''));
       out.push({ date: useDate, desc: desc || '(sem descrição)', value: val });
       last = out[out.length - 1];
@@ -336,8 +345,8 @@
     return out;
   }
 
-  async function pdfToLines(pdfjsLib, data) {
-    const doc = await pdfjsLib.getDocument({ data: new Uint8Array(data), isEvalSupported: false }).promise;
+  async function pdfToLines(pdfjsLib, data, password) {
+    const doc = await pdfjsLib.getDocument({ data: new Uint8Array(data), isEvalSupported: false, password: password || undefined }).promise;
     const lines = [];
     for (let p = 1; p <= doc.numPages; p++) {
       const page = await doc.getPage(p);
@@ -382,7 +391,7 @@
     }
     if (ext === 'pdf' || head.startsWith('%PDF')) {
       if (!libs.pdfjsLib) throw new Error('Leitor de PDF indisponível.');
-      const lines = await pdfToLines(libs.pdfjsLib, bytes);
+      const lines = await pdfToLines(libs.pdfjsLib, bytes, opts.password);
       if (!lines.length) throw new Error('Este PDF não tem texto (parece imagem escaneada). Baixe o extrato em CSV, Excel ou OFX.');
       const rows = pdfLinesToRows(lines, defaultYear);
       if (rows.length && !rows.some(r => r.value < 0)) warnings.push('Não encontrei valores negativos neste PDF: confira se as saídas estão com o sinal certo (use o botão ± da linha).');
