@@ -16,7 +16,8 @@
   const qs = new URLSearchParams(location.search);
   const MES = +qs.get('m') || 0;                      // 1..12 quando aberto pelo botão de uma aba mensal
   const BANCO = (qs.get('b') || '').slice(0, 30);      // nome do banco (planilhas com mais de uma conta)
-  const SERV = qs.get('s') !== '0';                    // s=0: planilha sem a coluna SERVIÇO
+  const SERV = qs.get('s') !== '0';
+  const LEARN = qs.get('a') !== '0';                   // a=0: sem aprendizado (texto do extrato vai para DESCRIÇÃO; categorias em branco)                    // s=0: planilha sem a coluna SERVIÇO
   const ABA = MES ? P.MESES[MES - 1] + (BANCO ? ' · ' + BANCO : '') : '';
   if (MES) {
     document.querySelector('header p').textContent = 'Lançamentos de ' + ABA + ': envie o extrato' + (BANCO ? ' do ' + BANCO : ' do banco') + ', clique em Copiar e cole na aba do mês.';
@@ -172,6 +173,8 @@
   function buildMonthTSV() {
     const clean = s => String(s).replace(/[\t\r\n]+/g, ' ').trim().replace(/^[=+\-@]/, "'$&");
     const num = v => v.toFixed(2).replace('.', EN() ? '.' : ',');
+    if (!LEARN) return S.rows.filter(r => r.on).map(r => [iso(r.date), clean(r.desc), '', r.value < 0 ? num(r.value) : '',
+      r.value > 0 ? num(r.value) : ''].join('\t')).join('\r\n');
     return S.rows.filter(r => r.on).map(r => [iso(r.date), '=SUG_DESC', r.value < 0 ? '=SUG_DESP' : '', r.value < 0 ? num(r.value) : '',
       r.value > 0 ? num(r.value) : '', r.value > 0 ? '=SUG_REC' : ''].concat(SERV ? ['=SUG_SERV'] : [], [clean(r.desc)]).join('\t')).join('\r\n');
   }
