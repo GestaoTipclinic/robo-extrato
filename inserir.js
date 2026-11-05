@@ -20,6 +20,10 @@
     document.title = 'Inserir extrato — ' + P.MESES[MES - 1];
   }
   const EN = () => !!store.get('excel_en');
+  // o que a aba do mês já tem (vem no link do botão): último dia lançado, quantos lançamentos e os valores desse último dia
+  const ATE = (() => { const m = (qs.get('ate') || '').match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/); return m ? P.parseDate(m[1] + '-' + m[2].padStart(2, '0') + '-' + m[3].padStart(2, '0')) : null; })();
+  const JA_N = +qs.get('n') || 0;
+  const ATE_VALS = (qs.get('v') || '').split('~').filter(x => x !== '' && !isNaN(+x)).map(Number);
   const year = new Date().getFullYear();
 
   const drop = $('drop'), input = $('file');
@@ -117,13 +121,31 @@
     let rows = S.parsed.rows;
     if (S.month !== 'all') { const [y, m] = S.month.split('-').map(Number); rows = rows.filter(r => { const d = ymd(r.date); return d.y === y && d.m === m; }); }
     rows = rows.map((r, k) => ({ r, k })).sort((a, b) => a.r.date - b.r.date || a.k - b.k).map(x => x.r);   // ordem cronológica
-    S.rows = rows.map((r, i) => Object.assign({}, r, { id: i, on: true }));
+    // extrato parcial: o que já está na aba (até o último dia lançado) vem desmarcado
+    const sameMonth = MES && ATE !== null && S.month !== 'all' && +S.month.split('-')[1] === MES;
+    const left = ATE_VALS.slice();
+    S.rows = rows.map((r, i) => {
+      let ja = false;
+      if (sameMonth) {
+        if (r.date < ATE) ja = true;
+        else if (r.date === ATE) { const k = left.indexOf(Math.round(r.value * 100)); if (k >= 0) { ja = true; left.splice(k, 1); } }
+      }
+      return Object.assign({}, r, { id: i, on: !ja, ja });
+    });
+    const nja = S.rows.filter(r => r.ja).length;
+    const box = $('jabox');
+    if (sameMonth) {
+      box.classList.remove('hidden');
+      box.innerHTML = `A aba de <b>${P.MESES[MES - 1]}</b> já tem <b>${JA_N}</b> lançamento(s), até <b>${br(ATE)}</b>. `
+        + (nja ? `Os <b>${nja}</b> lançamento(s) deste extrato que já estão lá foram desmarcados: vão só os novos.` : 'Nenhum lançamento deste extrato está lá ainda.')
+        + ' Se algum estiver errado, marque ou desmarque na lista.';
+    } else box.classList.add('hidden');
     $('c3').classList.remove('hidden'); $('bar').classList.remove('hidden');
     render();
   }
   function render() {
     $('rows').innerHTML = S.rows.map(r => `<tr class="${r.on ? '' : 'off'}" data-id="${r.id}">
-      <td><input type="checkbox" ${r.on ? 'checked' : ''}></td><td>${br(r.date)}</td><td>${esc(r.desc)}</td>
+      <td><input type="checkbox" ${r.on ? 'checked' : ''}></td><td>${br(r.date)}</td><td>${esc(r.desc)}${r.ja ? ' <span class="ja">já lançado</span>' : ''}</td>
       <td class="v ${r.value < 0 ? 'neg' : 'pos'}">${money(r.value)}<button class="sign" title="Inverter entrada/saída">±</button></td></tr>`).join('');
     const on = S.rows.filter(r => r.on);
     const ent = on.filter(r => r.value > 0).reduce((a, r) => a + r.value, 0), sai = on.filter(r => r.value < 0).reduce((a, r) => a + r.value, 0);

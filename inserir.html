@@ -4,9 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Inserir extrato — TipClinic</title>
-<script src="vendor/xlsx.full.min.js?v=20261102d"></script>
-<script src="vendor/pdf.min.js?v=20261102d"></script>
-<script src="parser.js?v=20261102d"></script>
+<script src="vendor/xlsx.full.min.js?v=20261105a"></script>
+<script src="vendor/pdf.min.js?v=20261105a"></script>
+<script src="parser.js?v=20261105a"></script>
 <style>
   :root { --navy:#00427A; --ink:#1F2937; --muted:#5B6676; --line:#D9DEE5; --panel:#F7F9FC; --green:#2E9E5B; --red:#C0392B; --amber:#B45309; --amber-bg:#FFF4D6; }
   * { box-sizing:border-box; }
@@ -42,11 +42,13 @@
   .ok { background:#E7F4EA; border:1px solid #BFE3C9; color:#1E6B34; border-radius:10px; padding:16px; }
   .ok h3 { margin:0 0 8px; } .ok ol { margin:6px 0 0; padding-left:20px; line-height:1.8; }
   kbd { background:#fff; border:1px solid #BFC7D2; border-bottom-width:2px; border-radius:4px; padding:1px 6px; font-family:inherit; font-size:12px; }
+  .info2 { background:#E6EEF8; color:#0B2E4F; border-radius:6px; padding:9px 11px; margin-bottom:10px; font-size:13px; }
+  .ja { font-size:10.5px; font-weight:700; color:#5B6676; background:#EEF1F5; border-radius:9px; padding:1px 7px; margin-left:6px; white-space:nowrap; }
   .hidden { display:none !important; }
 </style>
 </head>
 <body>
-<header><div class="in"><h1>Inserir extrato <span id="ver" style="font-size:11px;font-weight:400;opacity:.7">versão 02/11 19h00</span></h1><p>Envie o arquivo do banco. O robô arruma os lançamentos para você colar na planilha.</p></div></header>
+<header><div class="in"><h1>Inserir extrato <span id="ver" style="font-size:11px;font-weight:400;opacity:.7">versão 05/11 10h00</span></h1><p>Envie o arquivo do banco. O robô arruma os lançamentos para você colar na planilha.</p></div></header>
 <main>
   <section class="card">
     <h2><span class="n">1</span> Arquivo do extrato</h2>
@@ -65,6 +67,7 @@
     <h2><span class="n">3</span> Confira</h2>
     <div class="body">
       <p class="muted" style="margin-top:0">Desmarque o que não deve entrar. Use ± se uma entrada veio como saída (ou o contrário). A categoria e a divisão entre médicos são feitas na planilha.</p>
+      <div id="jabox" class="info2 hidden"></div>
       <div class="tbl"><table><thead><tr><th style="width:28px"></th><th style="width:96px">Data</th><th>Descrição</th><th style="text-align:right">Valor</th></tr></thead><tbody id="rows"></tbody></table></div>
       <p class="muted" id="totals"></p>
     </div>
@@ -87,6 +90,6 @@
   <label class="muted" style="margin-left:auto;white-space:nowrap"><input type="checkbox" id="en"> Excel em inglês</label>
 </div></div>
 <textarea id="clip" style="position:fixed;left:-9999px;top:0" aria-hidden="true"></textarea>
-<script src="inserir.js?v=20261102d"></script>
+<script src="inserir.js?v=20261105a"></script>
 </body>
 </html>
